@@ -57,19 +57,46 @@ available_zones=$(aws ec2 describe-availability-zones \
 --output text
 )
 
-# Create 1 subnet in each available zone
-# Use subnet size of CIDR /24 incrementing the third octet by 1 
-# First subnet will have subnet CIDR size of 1.0.1.0
-# Second subnet will have subnet CIDR size of 1.0.2.0
-# Similarly, incrementing the third octet by 1
-# It also tags each subnet by its third octet value, e.g., subnet1 for 1.0.1.0
-# and subnet2 for 1.0.2.0, etc.
+# Function: checking_existing_subnet_cidr
+# This function checks if a subnet with the specified CIDR block already exists in the AWS region.
+# It takes the desired subnet CIDR block as an argument and compares it with the existing subnet CIDRs.
+# If a subnet with the same CIDR block is found, the script exits with a message indicating the duplication.
+# Usage: checking_existing_subnet_cidr <subnet_cidr_block>
+checking_existing_subnet_cidr(){
+existing_subnet_cidr=$(aws ec2 describe-subnets --region $region --query "Subnets[*].CidrBlock" --output text)
+subnet_cidr_block=$1
+for cidr in $existing_subnet_cidr; do
+	if [ "$cidr" == "subnet_cidr_block" ]; then
+		echo "$cidr already exists. Exiting..."
+		exit
+	fi
+done
+}
+
+# Variables: subnetnumber, third_octet
+# The following variables are used within the create_subnet function to manage subnet numbering and CIDR block generation.
+# - subnetnumber: Keeps track of the sequential numbering for subnets. It is initially set to 1.
+# - third_octet: Represents the third octet in the CIDR block for subnets. It is initially set to 1.
+
+# Function: create_subnet
+
+# This function creates subnets in each available AWS Availability Zone within the specified VPC.
+# It uses a for loop to iterate over available zones and dynamically generates CIDR blocks for each subnet.
+# The CIDR blocks are formed using the VPC's CIDR block and an incrementing third octet.
+# The checking_existing_subnet_cidr function is called to ensure the uniqueness of each subnet CIDR block.
+# The AWS CLI command creates the subnet, tags it, and the function provides feedback on the creation.
+
+# Note: Modify the CIDR block structure and tagging strategy based on your specific VPC design.
+# Ensure that the checking_existing_subnet_cidr function is appropriately configured.
+
+# Example Usage: create_subnet
 
 subnetnumber=1
 third_octet=1
 create_subnet() {
     for zone in $available_zones; do
         subnet_cidr_block=10.0.$third_octet.0/24
+		checking_existing_subnet_cidr "$subnet_cidr_block"
         aws ec2 create-subnet --vpc-id $vpc_id --availability-zone $zone --cidr-block $subnet_cidr_block --tag-specifications "ResourceType=subnet,Tags=[{Key=name,Value=Subnet$subnetnumber}]" >> /dev/null
         echo "Subnet$subnetnumber is created in zone: $zone"
         subnetnumber=$((subnetnumber + 1))
