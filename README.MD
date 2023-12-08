@@ -9,7 +9,7 @@ Explore a variety of scripts, each tailored to automate specific tasks within AW
 ## Demo Video
 Check out our demo video to see these scripts in action and get a visual walkthrough of how they can accelerate your AWS resource provisioning.
 
-[aws_vpc_setup.sh]()
+[aws_vpc_setup.sh](https://youtu.be/2DtvvvOoql8)
 
 ## Getting Started
 Clone this repository to your local machine.
